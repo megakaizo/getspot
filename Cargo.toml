@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 dotenvy = "0.15.7"
-librespot = "0.8.0"
+librespot = { git = "https://github.com/librespot-org/librespot", branch = "dev", features = ["rodio-backend"] }
+log = "0.4.32"
 reqwest = "0.13.4"
 tokio = "1.52.3"
