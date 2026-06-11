@@ -1,0 +1,10 @@
+[package]
+name = "kaizo-player"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+dotenvy = "0.15.7"
+librespot = "0.8.0"
+reqwest = "0.13.4"
+tokio = "1.52.3"
