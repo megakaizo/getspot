@@ -1,5 +1,7 @@
 mod extractor;
 mod config;
+mod recorder;
+mod track;
 
 use std::error::Error;
 
