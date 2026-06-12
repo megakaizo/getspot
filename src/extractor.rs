@@ -55,7 +55,7 @@ pub async fn extract_track(track_id: &SpotifyUri, session: &Session) -> Result<T
     )    
 }
 
-pub async fn extract_playlist(config: Config, playlist_uri: String) -> Result<(), Box<dyn Error>> {
+pub async fn extract_playlist(config: Config, playlist_uri: String, monitor: String) -> Result<(), Box<dyn Error>> {
     println!("start extracting playlist...");
     let token = get_access_token(config).await;
 
@@ -71,7 +71,9 @@ pub async fn extract_playlist(config: Config, playlist_uri: String) -> Result<()
         let track_item = &playlist.contents.items[i];
         let track_id = &track_item.id;
         let track_meta = extract_track(track_id, &session).await?;
-        record_track(session.clone(), track_meta).await;
+        let record_status = record_track(session.clone(), track_meta, monitor.clone()).await;
+        println!("Record status: {}", record_status);
+        tokio::signal::ctrl_c().await?;
     } 
 
     Ok(())

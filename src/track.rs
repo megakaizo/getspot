@@ -1,5 +1,7 @@
 use librespot::core::{SpotifyUri, date::Date};
 
+
+#[derive(Clone)]
 pub struct TrackMeta {
     pub id: SpotifyUri,
     pub name: String,
