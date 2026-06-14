@@ -2,6 +2,7 @@ mod extractor;
 mod config;
 mod recorder;
 mod track;
+mod cli;
 
 use std::error::Error;
 
