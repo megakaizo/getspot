@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use librespot::core::SpotifyUri;
+use librespot::core::{SpotifyUri};
 use librespot::metadata::Metadata;
 use librespot::oauth::OAuthClientBuilder;
 use librespot::oauth::OAuthClient;
@@ -8,15 +8,46 @@ use librespot::core::{SessionConfig, authentication::Credentials, session::Sessi
 use librespot::oauth::OAuthToken;
 use librespot::metadata::{Playlist, Track};
 
-use crate::config::SCOPES;
-use crate::config::Config;
 use crate::recorder::record_track;
 use crate::track::TrackMeta;
 
 
-async fn get_access_token(config: Config) -> OAuthToken {
+const REDIRECT_URI: &str = "http://127.0.0.1:5588/login";
+const CLIENT_ID: &str =  "65b708073fc0480ea92a077233ca87bd";
+pub const SCOPES: &[&str] = &[
+    "app-remote-control",
+    "playlist-modify",
+    "playlist-modify-private",
+    "playlist-modify-public",
+    "playlist-read",
+    "playlist-read-collaborative",
+    "playlist-read-private",
+    "streaming",
+    "ugc-image-upload",
+    "user-follow-modify",
+    "user-follow-read",
+    "user-library-modify",
+    "user-library-read",
+    "user-modify",
+    "user-modify-playback-state",
+    "user-modify-private",
+    "user-personalized",
+    "user-read-birthdate",
+    "user-read-currently-playing",
+    "user-read-email",
+    "user-read-play-history",
+    "user-read-playback-position",
+    "user-read-playback-state",
+    "user-read-private",
+    "user-read-recently-played",
+    "user-top-read",
+];
+
+
+
+async fn get_access_token() -> OAuthToken {
     let scopes: Vec<&str> = SCOPES.to_vec();
-    let builder: OAuthClientBuilder = OAuthClientBuilder::new(config.client_id.trim(), config.redirect_uri.trim(), scopes);        
+    let builder: OAuthClientBuilder = OAuthClientBuilder::new(CLIENT_ID, REDIRECT_URI, scopes);        
     let client: OAuthClient = builder.build().unwrap();
     return client.get_access_token().unwrap()
 }
@@ -55,9 +86,9 @@ pub async fn extract_track(track_id: &SpotifyUri, session: &Session) -> Result<T
     )    
 }
 
-pub async fn extract_playlist(config: Config, playlist_uri: String, monitor: String, track_number: u32) -> Result<(), Box<dyn Error>> {
+pub async fn extract_playlist(playlist_uri: String, monitor: String, track_number: u32) -> Result<(), Box<dyn Error>> {
     println!("start extracting playlist...");
-    let token = get_access_token(config).await;
+    let token = get_access_token().await;
 
     let session: Session = Session::new(SessionConfig::default(), None);
     let credentials: Credentials = Credentials::with_access_token(token.access_token);
