@@ -1,8 +1,10 @@
 use std::sync::Arc;
 use std::fs;
 use std::io::Write;
-use std::error::Error;
 
+use id3::Frame;
+use id3::frame::{Picture, PictureType};
+use reqwest;
 use ffmpeg_sidecar::command::FfmpegCommand;
 use ffmpeg_sidecar::child::FfmpegChild;
 use id3::Timestamp;
@@ -35,6 +37,24 @@ impl AudioRecorder {
             track: track 
         }
     }
+    fn set_track_image(&mut self) {
+        let resp = reqwest::blocking::get(self.track.image_url.as_str()).unwrap();
+        let image_bytes = resp.bytes().unwrap();
+        let mut tag: Tag = Tag::read_from_path(self.output_path.clone()).unwrap_or_else(|_| Tag::new());
+        tag.remove("APIC");
+
+        let image = Picture {
+        mime_type: "image/jpeg".to_string(),
+        picture_type: PictureType::CoverFront,
+        description: String::new(),
+        data: image_bytes.to_vec(),
+        };
+
+        let frame: Frame = Frame::with_content("APIC", id3::Content::Picture(image));        
+        tag.add_frame(frame);
+        tag.write_to_path(self.output_path.clone(), id3::Version::Id3v24).unwrap();
+    }
+
 
     fn set_track_tags(&mut self) {
         let mut tag: Tag = Tag::read_from_path(self.output_path.clone()).unwrap_or_else(|_| Tag::new());
@@ -69,7 +89,7 @@ impl AudioRecorder {
                 "-f", "pulse",
                 "-i", self.monitor.as_str(),
                 "-c:a", "libmp3lame",
-                "-b:a", "192k",
+                "-b:a", "320k",
                 &self.output_path,
             ]).spawn().unwrap();
         self.ffmpeg_process = Some(child);
@@ -86,6 +106,7 @@ impl AudioRecorder {
         child.wait().expect("FFmpeg complete uncorrectly");
     }
     self.set_track_tags();
+    self.set_track_image();
 }}
 
 
@@ -104,21 +125,20 @@ pub fn create_player(session: Session) -> Arc<Player> {
 
 
 pub async fn record_track(session: Session, track: TrackMeta, monitor: String) -> bool {
-    let player = create_player(session);
-    player.load(track.id.clone(), true, 0);
     let output_dir = "./data/";
     fs::create_dir_all(output_dir).expect("Cannot create data folder");
-    let output_path = "./data/".to_string() + track.name.as_str() + ".mp3";
+    let output_path = format!("./data/{}.mp3", track.name);
 
     println!("OUTPUT_PATH: {}", output_path);
 
-    let mut recorder = AudioRecorder::new(output_path, monitor, track);
-
+    let player = create_player(session);
+    player.load(track.id.clone(), true, 0);
     let mut event_rc = player.get_player_event_channel();
 
-
-    let handle = tokio::spawn(async move {
-        while let Some(event) = event_rc.recv().await {
+    let result = tokio::task::spawn_blocking(move || {
+        let mut recorder = AudioRecorder::new(output_path, monitor, track);
+        
+        while let Some(event) = event_rc.blocking_recv() {
             match event {
                 PlayerEvent::Playing { .. } => {
                     println!("START RECORDING..");
@@ -127,12 +147,13 @@ pub async fn record_track(session: Session, track: TrackMeta, monitor: String) -
                 PlayerEvent::EndOfTrack { .. } => {
                     println!("STOP RECORDING..");
                     recorder.stop_recording();
-                    return true;  
+                    return true;
                 }
                 _ => continue,
             }
         }
-        false  
-    });
-    handle.await.unwrap_or(false)
+        false
+    }).await.unwrap_or(false);
+
+    result
 }
