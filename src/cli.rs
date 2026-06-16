@@ -11,17 +11,22 @@ pub struct Cli {
 pub struct ItemArgs {
     #[arg(num_args = 1..)]
     pub ids: Vec<String>,
+    #[arg(short = 's', long)]
     pub audio_sink: String,
-    pub save_to: String,
+    #[arg(short = 'o', long)]
+    pub save_to: Option<String>,
 }
 
 #[derive(Args)]
 pub struct ItemsArgs {
     #[arg(num_args = 1..)]
     pub ids: Vec<String>,
+    #[arg(short = 's', long)]
     pub audio_sink: String,
+    #[arg(short = 'n', long)]
     pub start_number: u16, 
-    pub save_to: String,
+    #[arg(short = 'o', long)]
+    pub save_to: Option<String>,
 }
 
 
@@ -32,7 +37,7 @@ pub enum Commands {
 
     Playlist(ItemsArgs),
 
-    Album(ItemsArgs),
+    Album(ItemArgs),
 }
 
 

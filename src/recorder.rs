@@ -96,19 +96,16 @@ impl AudioRecorder {
     }
 
     fn stop_recording(&mut self) {
-        if let Some(mut child) = self.ffmpeg_process.take() {
-    
-            if let Some(mut stdin) = child.take_stdin() {
-                stdin.write_all(b"q").expect("Cannot send a quit signal");
-                stdin.flush().expect("Cannot drop stdin buffer");
+    if let Some(mut child) = self.ffmpeg_process.take() {
+        if let Some(mut stdin) = child.take_stdin() {
+            let _ = stdin.write_all(b"q");
+            let _ = stdin.flush();
         }
-    
-        child.wait().expect("FFmpeg complete uncorrectly");
+        let _ = child.wait();
     }
     self.set_track_tags();
     self.set_track_image();
 }}
-
 
 
 
@@ -124,11 +121,20 @@ pub fn create_player(session: Session) -> Arc<Player> {
 }
 
 
-pub async fn record_track(session: Session, track: TrackMeta, monitor: String) -> bool {
-    let output_dir = "./data/";
-    fs::create_dir_all(output_dir).expect("Cannot create data folder");
-    let output_path = format!("./data/{}.mp3", track.name);
+fn get_output_path(save_path: Option<String>, track_name: &str) -> String {
+    if let Some(path) = save_path {
+         fs::create_dir_all(path.as_str()).expect("Cannot create data folder");
+         return format!("{}{}.mp3", path, track_name)
+    } else {
+        let path = "./data/";
+        fs::create_dir_all(path).expect("Cannot create data folder");
+        return format!("{}{}.mp3", path, track_name)
+    }
+}
 
+
+pub async fn record_track(session: Session, track: TrackMeta, monitor: String, save_path: Option<String>) -> bool {
+    let output_path = get_output_path(save_path, track.name.as_str());
     println!("OUTPUT_PATH: {}", output_path);
 
     let player = create_player(session);
