@@ -10,9 +10,7 @@ It works by intercepting audio stream from spotify using `librespot` and `ffmpeg
 ## Installation
 
 ```bash
-git clone git@github.com:megakaizo/getspot.git
-cd getspot
-cargo build --release
+cargo install --git git@github.com:megakaizo/getspot.git
 ```
 
 
